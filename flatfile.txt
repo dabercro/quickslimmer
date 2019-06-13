@@ -1,0 +1,24 @@
+! Set the default values
+
+{/F}
+{0}
+
+! Include Panda header
+
+"PandaTree/Objects/interface/Event.h"
+
+jets(panda::Jet& jet)
+
+  jet_$[] -> jet.$() | pt, eta, phi, m
+
+muons(panda::Muon& muon)
+
+  muon_$[] -> muon.$() | pt, eta, phi
+
+  ! Make charged a signed char
+  muon_$[]/B -> muon.$ | charge
+
+pfcands(panda::PFCand& cand)
+
+  pfcand_$[] -> cand.$() | pt, eta, phi, m
+  pfcand_$[]/I -> cand.$() | pdgId
