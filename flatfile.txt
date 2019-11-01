@@ -7,18 +7,11 @@
 
 "PandaTree/Objects/interface/Event.h"
 
-jets(panda::Jet& jet)
+{reset(panda::Event& e)}
 
-  jet_$[] -> jet.$() | pt, eta, phi, m
+$/i = e.$ | run, luminosityBlock
+$/l = e.$ | event
 
-muons(panda::Muon& muon)
+electrons(panda::Electron& ele)
 
-  muon_$[] -> muon.$() | pt, eta, phi
-
-  ! Make charged a signed char
-  muon_$[]/B -> muon.$ | charge
-
-pfcands(panda::PFCand& cand)
-
-  pfcand_$[] -> cand.$() | pt, eta, phi, m
-  pfcand_$[]/I -> cand.$() | pdgId
+  ele_$[] -> ele.$ | pt, eta, phi, mass

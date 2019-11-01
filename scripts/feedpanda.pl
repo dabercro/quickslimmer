@@ -3,6 +3,8 @@
 use strict;
 use warnings;
 
+use Data::Dumper;
+
 # Check arguments and print help function if needed
 sub print_use {
     print "Usage: $0 PANDADEF SOURCE SOURCE ... OUTPUTHEAD\n\n";
@@ -41,20 +43,49 @@ if (-e $out_file) {
 my $def_file = shift @ARGV;
 my @source;
 my @branches = ('triggers');
+my $include_dir = '';
+my %read_files;
 
-foreach my $infile (@ARGV) {
-    open (my $handle, '<', $infile);
-    push @source, <$handle>;
+sub open_src {
+    my @output;
+    open(my $handle, '<', shift);
+    for (<$handle>) {
+        if (/#include .([\w\/]+\.h)/) {
+            if (-f "${include_dir}/$1") {
+                if (1 < ($read_files{$1} += 1)) {
+                    next;
+                }
+                push @output, open_src("${include_dir}/$1");
+            }
+        }
+        else {
+            push @output, $_;
+        }
+    }
     close $handle;
+    return @output;
+}
+
+for (@ARGV) {
+    if (-d $_) {
+        $include_dir = $_;
+        next;
+    }
+
+    push @source, open_src($_);
 }
 
 # Filter to get the members called
-chomp(@source = grep { /\.|(->)/ } @source);
+chomp(@source = grep { /\.|(->)|(::)/ } @source);
 
 for (@source) {
     # Don't match with function members of event
-    if (/\be(vent)?\.(\w+)(?!\w*\()/) {
-        push @branches, $2;
+    while (/\be(vent)?(\.|->)(\w+)(?!\w*\()/g) {
+        push @branches, $3;
+    }
+    # Also match offsets
+    while (/\&panda::Event::(\w+)/g) {
+        push @branches, $1;
     }
 }
 
@@ -103,15 +134,17 @@ print $out <<HEAD;
 
 #include "PandaTree/Objects/interface/Event.h"
 
-void feedpanda(panda::Event& event, TTree* input) {
-  event.setStatus(*input, {"!*"});
-  event.setAddress(*input,
+namespace crombie {
+  void feedpanda(panda::Event& event, TTree* input) {
+    event.setStatus(*input, {"!*"});
+    event.setAddress(*input,
 HEAD
 
-print $out '    {"' . join("\",\n     \"", @branches) . '"';
+print $out '      {"' . join("\",\n       \"", @branches) . '"';
 
 print $out <<HEAD;
-});
+  });
+  }
 }
 
 #endif

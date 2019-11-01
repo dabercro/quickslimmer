@@ -1,8 +1,6 @@
 #include "feedpanda.h"
 #include "flatfile.h"
 
-#include "TH1F.h"
-
 int main(int argc, char** argv) {
 
   if (argc < 3) {
@@ -11,7 +9,6 @@ int main(int argc, char** argv) {
   }
 
   flatfile output {argv[argc - 1]};
-  TH1F all_hist {"htotal", "htotal", 1, -1, 1};
 
   // Loop over all input files
   for (int i_file = 1; i_file < argc - 1; i_file++) {
@@ -21,29 +18,20 @@ int main(int argc, char** argv) {
 
     // Get the PandaTree
     TFile input {argv[i_file]};
-    auto* events_tree = static_cast<TTree*>(input.Get("events"));
+    auto* events_tree = static_cast<TTree*>(input.Get("Events"));
     panda::Event event;
     // This sets the branch statuses
-    feedpanda(event, events_tree);
+    crombie::feedpanda(event, events_tree);
     auto nentries = events_tree->GetEntries();
 
     // Loop over tree
     for(decltype(nentries) entry = 0; entry != nentries; ++entry) {
-
       event.getEntry(*events_tree, entry);
-      all_hist.Fill(0.0, event.weight);
-
       // Puts things back to default values (0 for now)
-      output.reset();
+      output.reset(event);
 
-      for (auto& mu : event.muons)
-        output.set_muons(mu);
-
-      for (auto& jet : event.chsAK4Jets)
-        output.set_jets(jet);
-
-      for (auto& cand : event.pfCandidates)
-        output.set_pfcands(cand);
+      for (auto& ele : event.Electron)
+        output.set_electrons(ele);
 
       // Writes to tree
       output.fill();
@@ -51,7 +39,6 @@ int main(int argc, char** argv) {
     }
   }
 
-  output.write(&all_hist);
   return 0;
 
 }
